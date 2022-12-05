@@ -75,46 +75,30 @@ EXAMPLES:
 bldd(){
     echo "bldd started with arguments: so=$1 directory=$2 verbose=$3 format=$4"
     echo "Results for $1" > result.$4
-    if [ "$2" != "default" ]; then
-        for file in $(find $2 -type f); do
-            if ldd $file 2> /dev/null | grep $1 &> /dev/null; then
-                echo "$file" >> result.$4
-            fi
-        done
-    else
-        array=(
-            "$HOME/bin/" #Local binaries
-            "$HOME/etc/" #Host-specific system configuration for local binaries
-            "$HOME/games/" #Local game binaries
-            "$HOME/include/" #Local C header files
-            "$HOME/lib/" #Local libraries
-            "$HOME/lib64/" #Local 64-bit libraries
-            "$HOME/man/" #Local online manuals
-            "$HOME/sbin/" #Local system binaries
-            "$HOME/share/" #Local architecture-independent hierarchy
-            "$HOME/src/" #Local source code
-        )
-        for i in "${array[@]}"; do 
-            if [ -d "$i" ]; then
-                if [ $3==true ]; then 
-                    echo -e "Proceeding ${i}..." 
-                fi
-                for file in $(find $i -type f ); do
-                    if ldd $file 2> /dev/null | grep $1 &> /dev/null; then
-                        echo "$file" >> result.$4
-                    fi
-                done
-            else
-                if [ $3==true ]; then 
-                    echo -e "Directory ${i} will not be proceed." 
-                fi
-            fi
-        done
-    fi
+    declare -A archs
+    for file in $(find $2 -type f); do
+        file_arch=$(objdump -a $file 2> /dev/null | awk '/file format ([a-z-]*)/{print $4}')
+        if [ -z $file_arch ]; then
+           continue
+        fi
+
+        if [ -z ${archs[$file_arch]+"test"} ]; then
+            archs[$file_arch]=""
+        fi
+
+        if ldd $file 2> /dev/null | grep $1 &> /dev/null; then
+            archs[$file_arch]+="$file\n"
+        fi
+    done
+
+    for arch in ${!archs[@]}; do
+        echo "--- $arch ---" >> result.$4
+        printf ${archs[$arch]} >> result.$4
+    done
 }
 
 so="libc"
-directory="default"
+directory="/home/bin"
 format="txt"
 verbose=false
 
