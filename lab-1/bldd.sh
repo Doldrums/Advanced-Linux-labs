@@ -4,7 +4,6 @@
 # non-zero exit code.
 set -eu
 
-
 version='0.0.1'
 # The author of this program
 author='Arina Cheverda BS20-CS-01'
@@ -32,7 +31,7 @@ exit_with() {
   exit "$2"
 }
 
-# Prints help and usage information. Straight forward, no?
+# **Internal**  Prints help and usage information.
 usage() {
   echo "$program $version
 $author
