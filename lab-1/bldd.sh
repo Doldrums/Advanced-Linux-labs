@@ -64,6 +64,7 @@ COMMON OPTIONS:
     -d <SCAN_DIR_PATH>    Sets the source scan directory path (default: /hab/cache/artifacts)
     -r <REPORT_FILE_TYPE> Sets Report file type (default: txt)
                           Valid types: [txt pdf]
+    -l <SHARED_LIB>       Sets the shared lib object for which we are looking for EXECUTABLE objects.
 EXAMPLES:
     # BLDD displays the location of the matching object and the (hexadecimal) address at which it is loaded
     $program -d /bin/ls
