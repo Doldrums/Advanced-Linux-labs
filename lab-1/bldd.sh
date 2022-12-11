@@ -78,17 +78,14 @@ bldd(){
     echo "Results for $1" > result.$4
     declare -A archs
     for file in $(find $2 -type f); do
-        file_arch=$(objdump -a $file 2> /dev/null | awk '/file format ([a-z-]*)/{print $4}')
-        if [ -z $file_arch ]; then
-           continue
-        fi
-
-        if [ -z ${archs[$file_arch]+"test"} ]; then
-            archs[$file_arch]=""
-        fi
-
-        if ldd $file 2> /dev/null | grep $1 &> /dev/null; then
-            archs[$file_arch]+="$file\n"
+        file_arch=$(file $file 2> /dev/null | awk -F, '{print $2}')
+        if [[ $(objdump -a $file 2> /dev/null | awk '/file format ([a-z-]*)/{print $4}') == *"elf"* ]]; then
+            if readelf -d $file | grep 'NEEDED' | grep $1 &> /dev/null; then
+                echo "Этого береммммм"
+                echo "$file"
+                echo "$file_arch"
+                archs[$file_arch]+="$file\n"
+            fi
         fi
     done
 

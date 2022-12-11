@@ -90,7 +90,6 @@ int pop(void)
     else
     {
         temp = top;
-        printk("Value popped out is %d \n",temp->data);
         top = top->link;
         kfree(temp);
     }
@@ -113,6 +112,9 @@ void print_stack(void)
     printk("size of stack is %d \n",count);
 }
 
+/* Called when a process tries to open the device file, like 
+ * "sudo cat /dev/char_dev" 
+ */ 
 static int device_open(struct inode *inode, struct file *file) 
 { 
     pr_info("device_open(%p)\n", file); 
