@@ -12,10 +12,6 @@
   *
 */
 
-/* 
- * chardev2.c - Create an input/output character device 
- */ 
- 
 #include <linux/cdev.h> 
 #include <linux/delay.h> 
 #include <linux/device.h> 
