@@ -21,6 +21,7 @@
 #include <linux/kernel.h> /* We are doing kernel work */ 
 #include <linux/module.h> /* Specifically, a module */ 
 #include <linux/poll.h> 
+#include <linux/mutex.h>
 #include "chardev.h" 
 
 #define SUCCESS 0 
@@ -31,7 +32,8 @@ enum {
 }; 
  
 static atomic_t already_open = ATOMIC_INIT(CDEV_NOT_USED); 
- 
+static DEFINE_MUTEX(stack_lock);
+
 static struct class *cls; 
 
 struct node
@@ -46,6 +48,7 @@ int MAX_STACK_SIZE = 5;
 // to insert elements in stack
 int push(int32_t val)
 {
+    mutex_lock(&stack_lock);
     int result = 0;
     struct node *temp;
     if (current_stack_size < MAX_STACK_SIZE)
@@ -59,12 +62,14 @@ int push(int32_t val)
     else {
       result = -1;
     }
+    mutex_unlock(&stack_lock);
     return result;
 }
  
 // to delete elements from stack
 int32_t pop(void)
 {
+    mutex_lock(&stack_lock);
     int32_t result;
     struct node *temp;
     if (top == NULL){
@@ -79,6 +84,7 @@ int32_t pop(void)
         kfree(temp);
         current_stack_size -= 1;
     }
+    mutex_unlock(&stack_lock);
     return result;
 }
 
