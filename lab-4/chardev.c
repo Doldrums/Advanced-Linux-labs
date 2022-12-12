@@ -22,18 +22,15 @@
 #include <linux/module.h> /* Specifically, a module */ 
 #include <linux/poll.h> 
 #include "chardev.h" 
+
 #define SUCCESS 0 
-#define DEVICE_NAME "char_dev" 
-#define BUF_LEN 80 
- 
+
 enum { 
     CDEV_NOT_USED = 0, 
     CDEV_EXCLUSIVE_OPEN = 1, 
 }; 
  
 static atomic_t already_open = ATOMIC_INIT(CDEV_NOT_USED); 
- 
-static char message[BUF_LEN + 1]; 
  
 static struct class *cls; 
 
@@ -42,36 +39,22 @@ struct node
     int32_t data;
     struct node *link;
 }*top = NULL;
- 
-int MAX = 5;
- 
+int current_stack_size = 0;
 
-int st_count(void)
-{
-    int count = 0;
-    struct node *temp;
-    temp = top;
-    while (temp != NULL)
-    {
-        temp = temp->link;
-        count++;
-    }
-    return count;
-}
+int MAX_STACK_SIZE = 5;
 
 // to insert elements in stack
 int push(int32_t val)
 {
     int result = 0;
-    int count;
     struct node *temp;
-    count = st_count();
-    if (count <  MAX)
+    if (current_stack_size < MAX_STACK_SIZE)
     {
         temp = (struct node*)kmalloc(sizeof(struct node), GFP_KERNEL);
         temp->data = val;
         temp->link = top;
         top = temp;
+        current_stack_size += 1;
     }
     else {
       result = -1;
@@ -80,9 +63,9 @@ int push(int32_t val)
 }
  
 // to delete elements from stack
-int pop(void)
+int32_t pop(void)
 {
-    int result = 0;
+    int32_t result;
     struct node *temp;
     if (top == NULL){
       result = -1;
@@ -90,26 +73,13 @@ int pop(void)
     else
     {
         temp = top;
+        result = temp->data;
+        printk("Value popped out is %d \n",result);
         top = top->link;
         kfree(temp);
+        current_stack_size -= 1;
     }
     return result;
-}
- 
-// to count the number of elements
-void print_stack(void)
-{
-    int count = 0;
-    struct node *temp;
- 
-    temp = top;
-    while (temp != NULL)
-    {
-        printk(" %d\n",temp->data);
-        temp = temp->link;
-        count++;
-    }
-    printk("size of stack is %d \n",count);
 }
 
 /* Called when a process tries to open the device file, like 
@@ -136,34 +106,54 @@ static ssize_t device_read(struct file *file,
                            loff_t *offset) 
 { 
     int32_t bytes_read = 0; 
-    const char *message_ptr = message; 
-    message_ptr += *offset; 
-    while (length && *message_ptr) { 
-        put_user(*(message_ptr++), buffer++); 
-        length--; 
-        bytes_read++; 
-    } 
-    pr_info("Read %d bytes, %ld left\n", bytes_read, length); 
-    *offset += bytes_read; 
-    int result = pop();
-    if (result != 0) {
-        printk(KERN_ALERT "Error: Something went wrong\n");
+    int32_t value = pop();
+
+    while (value != -1) {
+        size_t bytes_to_read = sizeof(int32_t);
+        if (bytes_read + bytes_to_read > length) {
+            bytes_to_read = length - bytes_read;
+        }
+
+        copy_to_user(buffer + bytes_read, &value, bytes_to_read);
+        bytes_read += bytes_to_read;
+
+        if (bytes_read == length) {
+            break;
+        }
+
+        value = pop();
     }
-    return bytes_read; 
+
+    return bytes_read;
 } 
  
 static ssize_t device_write(struct file *file, const char __user *buffer, 
                             size_t length, loff_t *offset) 
 { 
-    int32_t i; 
-    pr_info("device_write(%p,%p,%ld)", file, buffer, length); 
-    for (i = 0; i < length && i < BUF_LEN; i++) 
-        get_user(message[i], buffer + i); 
-    int result =  push((int32_t) message);;
-    if (result != 0) {
-        printk(KERN_ALERT "Error: Something went wrong\n");
+    ssize_t bytes_written = 0;
+    int32_t value;
+
+    for (size_t i = 0; i < length; i += sizeof(int32_t)) {
+        size_t bytes_to_copy = sizeof(int32_t);
+        if (i + bytes_to_copy > length) {
+            bytes_to_copy = length - i;
+        }
+        
+        copy_from_user(&value, buffer + i, bytes_to_copy);
+
+        if (push(value) == -1) {
+            break;
+        }
+
+        bytes_written += bytes_to_copy;
+        value = 0;
     }
-    return i; 
+
+    if (bytes_written == 0) {
+        return -EOVERFLOW;
+    }
+
+    return length;
 } 
  
 static long 
@@ -181,7 +171,7 @@ device_ioctl(struct file *file,
         int __user *tmp = (int __user *)ioctl_param; 
         int ch; 
 
-        MAX = (int)(int __user *)ioctl_param;
+        MAX_STACK_SIZE = (int)(int __user *)ioctl_param;
         break; 
     } 
     } 
@@ -201,7 +191,7 @@ static struct file_operations fops = {
 
 static int __init chardev2_init(void) 
 { 
-    int ret_val = register_chrdev(MAJOR_NUM, DEVICE_NAME, &fops); 
+    int ret_val = register_chrdev(MAJOR_NUM, DEVICE_FILE_NAME, &fops); 
 
     if (ret_val < 0) { 
         pr_alert("%s failed with %d\n", 
@@ -222,7 +212,7 @@ static void __exit chardev2_exit(void)
 { 
     device_destroy(cls, MKDEV(MAJOR_NUM, 0)); 
     class_destroy(cls); 
-    unregister_chrdev(MAJOR_NUM, DEVICE_NAME); 
+    unregister_chrdev(MAJOR_NUM, DEVICE_FILE_NAME); 
 } 
  
 module_init(chardev2_init); 
