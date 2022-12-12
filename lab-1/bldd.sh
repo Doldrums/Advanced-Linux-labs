@@ -26,6 +26,11 @@ author='Arina Cheverda BS20-CS-01'
 # The short version of the program name which is used in logging output
 program=$(basename "$0")
 
+so="libc"
+directory="/home/bin"
+format="txt"
+verbose=false
+
 # **Internal** Exit the program with an error message and a status code.
 #
 # ```sh
@@ -74,34 +79,34 @@ EXAMPLES:
 }
 
 bldd(){
-    echo "bldd started with arguments: so=$1 directory=$2 verbose=$3 format=$4"
+    if $verbose; then
+        echo "BLDD starting with arguments: so=$1 directory=$2 verbose=$3 format=$4 ...."          
+    fi
     echo "Results for $1" > result.$4
     declare -A archs
     for file in $(find $2 -type f); do
         file_arch=$(file $file 2> /dev/null | awk -F, '{print $2}')
         if [[ $(objdump -a $file 2> /dev/null | awk '/file format ([a-z-]*)/{print $4}') == *"elf"* ]]; then
+            if $verbose; then
+                echo "Proceeding file: $file for dependence on lib=$1 with architecture=$file_arch"
+            fi
             if readelf -d $file | grep 'NEEDED' | grep $1 &> /dev/null; then
-                echo "Этого береммммм"
-                echo "$file"
-                echo "$file_arch"
-                if [ -z ${archs[$file_arch]+"test"} ]; then
+                if $verbose; then
+                    echo "Well! We got $file_arch binary file: $file."
+                fi
+                if [[ -z "${archs[$file_arch]}" ]]; then
                     archs[$file_arch]=""
                 fi
-                archs[$file_arch]+="$file\n"
+                archs[$file_arch]+="$file \n"
             fi
         fi
     done
 
-    for arch in ${!archs[@]}; do
+    for arch in "${!archs[@]}"; do
         echo "--- $arch ---" >> result.$4
-        printf ${archs[$arch]} >> result.$4
+        printf "${archs[$arch]}" >> result.$4
     done
 }
-
-so="libc"
-directory="/home/bin"
-format="txt"
-verbose=false
 
 while getopts ":hvVr:d:l:" flag; do
     case "${flag}" in
