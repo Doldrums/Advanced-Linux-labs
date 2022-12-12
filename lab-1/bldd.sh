@@ -84,6 +84,9 @@ bldd(){
                 echo "Этого береммммм"
                 echo "$file"
                 echo "$file_arch"
+                if [ -z ${archs[$file_arch]+"test"} ]; then
+                    archs[$file_arch]=""
+                fi
                 archs[$file_arch]+="$file\n"
             fi
         fi
