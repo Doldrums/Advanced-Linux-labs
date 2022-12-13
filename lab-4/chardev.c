@@ -54,6 +54,11 @@ int push(int32_t val)
     if (current_stack_size < MAX_STACK_SIZE)
     {
         temp = (struct node*)kmalloc(sizeof(struct node), GFP_KERNEL);
+        if (!temp) {
+            result = -ENOMEM;
+            goto out;
+        }
+
         temp->data = val;
         temp->link = top;
         top = temp;
@@ -62,6 +67,7 @@ int push(int32_t val)
     else {
       result = -1;
     }
+out:
     mutex_unlock(&stack_lock);
     return result;
 }
