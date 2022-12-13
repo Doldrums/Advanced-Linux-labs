@@ -8,11 +8,11 @@
  
 /* Functions for the ioctl calls */ 
  
-int ioctl_set_msg(int file_desc, int *message) 
+int ioctl_set_msg(int file_desc, size_t new_size) 
 { 
     int ret_val; 
  
-    ret_val = ioctl(file_desc, IOCTL_SET_MSG, message); 
+    ret_val = ioctl(file_desc, IOCTL_SET_SIZE, &new_size); 
  
     if (ret_val < 0) { 
         printf("ioctl_set_msg failed:%d\n", ret_val); 
@@ -24,7 +24,6 @@ int ioctl_set_msg(int file_desc, int *message)
 int main(void) 
 { 
     int file_desc, ret_val; 
-    char *msg = "Message passed by ioctl\n"; 
  
     file_desc = open(DEVICE_PATH, O_RDWR); 
     if (file_desc < 0) { 
@@ -32,13 +31,16 @@ int main(void)
                file_desc); 
         exit(EXIT_FAILURE); 
     } 
+
+    int new_size;
+    printf("Enter new size of stack: ");
+    scanf("%d", &new_size);
  
-    ret_val = ioctl_set_msg(file_desc, msg); 
-    if (ret_val) 
-        goto error; 
-    close(file_desc); 
-    return 0; 
-error: 
-    close(file_desc); 
-    exit(EXIT_FAILURE); 
+    if (ioctl_set_msg(file_desc, new_size)) {
+        close(file_desc);
+        exit(EXIT_FAILURE);
+    }
+
+    close(file_desc);
+    return 0;
 }

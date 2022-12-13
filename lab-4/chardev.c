@@ -167,20 +167,27 @@ device_ioctl(struct file *file,
              unsigned int ioctl_num,
              unsigned long ioctl_param) 
 { 
-    int i; 
-    long ret = SUCCESS; 
+    int ret = SUCCESS; 
     if (atomic_cmpxchg(&already_open, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN)) 
         return -EBUSY; 
  
     switch (ioctl_num) { 
-    case IOCTL_SET_MSG: { 
-        int __user *tmp = (int __user *)ioctl_param; 
-        int ch; 
+        case IOCTL_SET_SIZE: { 
+            int __user *new_size_user = (int __user *)ioctl_param;
+            int new_size;
 
-        MAX_STACK_SIZE = (int)(int __user *)ioctl_param;
-        break; 
-    } 
-    } 
+            if (copy_from_user(&new_size, new_size_user, sizeof(int))) {
+                return -EFAULT;
+            }
+
+            while (current_stack_size > new_size) {
+                pop();
+            }
+
+            MAX_STACK_SIZE = new_size;
+            break; 
+        }
+    }
     atomic_set(&already_open, CDEV_NOT_USED); 
  
     return ret; 

@@ -9,7 +9,7 @@
 
 #define MAJOR_NUM 100 
  
-#define IOCTL_SET_MSG _IOW(MAJOR_NUM, 0, int *) 
+#define IOCTL_SET_SIZE _IOW(MAJOR_NUM, 2, int) 
 
 #define DEVICE_FILE_NAME "char_dev" 
 #define DEVICE_PATH "/dev/char_dev" 
