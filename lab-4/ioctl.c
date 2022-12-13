@@ -8,14 +8,14 @@
  
 /* Functions for the ioctl calls */ 
  
-int ioctl_set_msg(int file_desc, size_t new_size) 
+int ioctl_set_size(int file_desc, size_t new_size) 
 { 
     int ret_val; 
  
     ret_val = ioctl(file_desc, IOCTL_SET_SIZE, &new_size); 
  
     if (ret_val < 0) { 
-        printf("ioctl_set_msg failed:%d\n", ret_val); 
+        printf("ioctl_set_size failed:%d\n", ret_val); 
     } 
  
     return ret_val; 
@@ -36,7 +36,7 @@ int main(void)
     printf("Enter new size of stack: ");
     scanf("%d", &new_size);
  
-    if (ioctl_set_msg(file_desc, new_size)) {
+    if (ioctl_set_size(file_desc, new_size)) {
         close(file_desc);
         exit(EXIT_FAILURE);
     }
